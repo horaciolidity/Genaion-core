@@ -1,0 +1,42 @@
+{
+  "system": {
+    "name": "GENAION",
+    "version": "0.1.0",
+    "motto": "THE ORIGIN OF INTELLIGENT CREATION",
+    "environment": "local_autonomous",
+    "host": "0.0.0.0",
+    "port": 8080,
+    "debug": false,
+    "hardware_profile": "auto"
+  },
+  "brain": {
+    "active_model": null,
+    "models_dir": "models",
+    "default_temperature": 0.7,
+    "default_top_p": 0.9,
+    "default_context_length": 2048,
+    "default_threads": 4,
+    "llama_cpp_binary_path": "llama-cli",
+    "fallback_rule_inference": true
+  },
+  "memory": {
+    "db_path": "storage/genaion.db",
+    "enable_fts": true,
+    "wal_mode": true,
+    "auto_vacuum": "INCREMENTAL"
+  },
+  "security": {
+    "strict_mode": true,
+    "require_confirmation_for_actuators": true,
+    "allow_shell_execution": false,
+    "allowed_workspace_dirs": [
+      "storage",
+      "models",
+      "docs"
+    ]
+  },
+  "learning": {
+    "auto_index_documents": true,
+    "record_feedback_pairs": true
+  }
+}

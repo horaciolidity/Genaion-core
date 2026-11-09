@@ -1,0 +1,9 @@
+# GENAION Core 0.1 Dependencies
+# El núcleo básico de GENAION funciona utilizando la librería estándar de Python
+# y herramientas del sistema (SQLite3, subprocess, math, json, http.server).
+#
+# Dependencias recomendadas para utilidades extendidas:
+typing-extensions>=4.5.0
+
+# Opcional (para integración directa en memoria de bindings llama.cpp en Linux x86/ARM):
+# llama-cpp-python>=0.2.80

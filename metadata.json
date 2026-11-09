@@ -1,0 +1,6 @@
+{
+  "name": "GENAION — Autonomous Modular AI Platform",
+  "description": "The Origin of Intelligent Creation. Sovereign, local, modular, and evolutionary artificial intelligence system for Android (Termux/proot) and edge computers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
