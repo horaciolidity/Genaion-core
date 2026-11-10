@@ -417,7 +417,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Bar Header */}
+      {/* Top Bar Header with Omnipresent Genius AI Entity */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -425,6 +425,11 @@ export default function App() {
         setMobileMenuOpen={setMobileMenuOpen}
         onExportProject={handleDownloadBundle}
         activeModelName={status?.brain.activeModelName || 'GENAION Core'}
+        isInferring={isLoading}
+        systemState={status?.identity.state || 'READY'}
+        cpuLoadPercent={status?.hardware.usedRamPercent || 20}
+        temperatureC={status?.hardware.temperatureC || 38}
+        thermalState={status?.hardware.thermalState || 'normal'}
       />
 
       {/* Main Content Viewport */}

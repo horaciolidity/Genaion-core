@@ -1,5 +1,6 @@
-import React from 'react';
-import { Cpu, Terminal, Shield, Download, Menu, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Menu, X } from 'lucide-react';
+import { GenaionFace } from './GenaionFace';
 import emblemImg from '../assets/images/genaion_core_emblem_1794264434067.jpg';
 
 interface HeaderProps {
@@ -9,6 +10,11 @@ interface HeaderProps {
   setMobileMenuOpen: (open: boolean) => void;
   onExportProject: () => void;
   activeModelName: string;
+  isInferring?: boolean;
+  systemState?: string;
+  cpuLoadPercent?: number;
+  temperatureC?: number;
+  thermalState?: 'normal' | 'warm' | 'throttling' | 'critical';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,28 +24,83 @@ export const Header: React.FC<HeaderProps> = ({
   setMobileMenuOpen,
   onExportProject,
   activeModelName,
+  isInferring = false,
+  systemState = 'READY',
+  cpuLoadPercent = 20,
+  temperatureC = 38,
+  thermalState = 'normal',
 }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Dynamic scroll listener: detects when user scrolls down to morph the entity into the header layout
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      setIsScrolled(scrollY > 55);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Run once on mount in case already scrolled
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Omnipresent condition: Always visible on non-telemetry tabs, and appears on telemetry tab when scrolled down
+  const showOmnipresentFace = isScrolled || activeTab !== 'telemetry';
+
   return (
-    <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3.5">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
-        {/* Zone 1: Brand Wordmark */}
+    <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-2.5 transition-all duration-300">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 md:gap-8">
+        {/* Zone 1: Brand Wordmark + Omnipresent Genius AI Entity */}
         <div className="flex items-center gap-3 shrink-0">
-          <img
-            src={emblemImg}
-            alt="GENAION Core Emblem"
-            className="w-8 h-8 rounded-full border border-slate-700/60 object-cover shadow-sm shrink-0"
-          />
+          {/* Animated Container for the Omnipresent Living Face (Eyes & Mouth only, zero contours) */}
+          <div className="flex items-center relative">
+            {showOmnipresentFace ? (
+              <div
+                className="transition-all duration-500 ease-out transform scale-100 opacity-100 flex items-center"
+                title="Entidad GENAION — Omnipresente en todo el sistema. Haz clic para interactuar."
+              >
+                <GenaionFace
+                  systemState={systemState}
+                  cpuLoadPercent={cpuLoadPercent}
+                  temperatureC={temperatureC}
+                  thermalState={thermalState}
+                  isInferring={isInferring}
+                  size="compact"
+                  showStatusLabel={false}
+                  interactive={true}
+                  className="shrink-0"
+                />
+              </div>
+            ) : (
+              <img
+                src={emblemImg}
+                alt="GENAION Core Emblem"
+                className="w-8 h-8 rounded-full border border-slate-700/60 object-cover shadow-sm shrink-0 transition-all duration-300 transform scale-100 opacity-100"
+              />
+            )}
+          </div>
+
           <button
             onClick={() => setActiveTab('telemetry')}
-            className="text-left group flex flex-col focus:outline-none"
+            className="text-left group flex items-center gap-2 focus:outline-none"
           >
             <span className="text-base font-extrabold tracking-wider text-slate-100 group-hover:text-cyan-400 transition-colors whitespace-nowrap">
               GENAION
             </span>
+            {isInferring ? (
+              <span className="text-[10px] font-mono text-cyan-400 tracking-wider font-semibold animate-pulse hidden sm:inline">
+                ● COGNICIÓN
+              </span>
+            ) : showOmnipresentFace ? (
+              <span className="text-[9px] font-mono text-slate-500 tracking-wider hidden sm:inline">
+                SOBERANO
+              </span>
+            ) : null}
           </button>
         </div>
 
-        {/* Zone 2: 4-5 Clean Nav Links */}
+        {/* Zone 2: Clean Nav Links */}
         <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-slate-400">
           <button
             onClick={() => setActiveTab('telemetry')}
@@ -99,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: 1 Primary Action */}
+        {/* Zone 3: Primary Action & Mobile Menu */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={onExportProject}

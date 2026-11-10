@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Zap, Flame, Brain, ShieldAlert, Heart } from 'lucide-react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 
 interface GenaionFaceProps {
   systemState?: string; // 'READY' | 'INFERRING' | 'ERROR'
@@ -7,10 +6,10 @@ interface GenaionFaceProps {
   temperatureC?: number;
   thermalState?: 'normal' | 'warm' | 'throttling' | 'critical';
   isInferring?: boolean;
-  evolutionStage?: 1 | 2 | 3; // 1: Génesis, 2: Sináptico, 3: Androide
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'compact';
   interactive?: boolean;
   className?: string;
+  showStatusLabel?: boolean;
 }
 
 export const GenaionFace: React.FC<GenaionFaceProps> = ({
@@ -19,47 +18,93 @@ export const GenaionFace: React.FC<GenaionFaceProps> = ({
   temperatureC = 38,
   thermalState = 'normal',
   isInferring = false,
-  evolutionStage = 1,
   size = 'md',
   interactive = true,
   className = '',
+  showStatusLabel = true,
 }) => {
-  // Eye tracking state (-1 to 1)
-  const [lookX, setLookX] = useState<number>(0);
-  const [lookY, setLookY] = useState<number>(0);
-  const [isBlinking, setIsBlinking] = useState<boolean>(false);
+  const uniqueId = useId().replace(/:/g, '');
+
+  // Dynamic Gaze Tracking (-1 to 1) with dampening
+  const [targetLookX, setTargetLookX] = useState<number>(0);
+  const [targetLookY, setTargetLookY] = useState<number>(0);
+  const [currentLookX, setCurrentLookX] = useState<number>(0);
+  const [currentLookY, setCurrentLookY] = useState<number>(0);
+
+  // Biological & Contemplative Micro-saccades
+  const [saccadeX, setSaccadeX] = useState<number>(0);
+  const [saccadeY, setSaccadeY] = useState<number>(0);
+
+  // Deep Reflection / Pondering State (periodic thoughtful gaze)
+  const [isReflecting, setIsReflecting] = useState<boolean>(false);
+  const [reflectAngle, setReflectAngle] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Natural Blink State (0 = wide open, 1 = shut)
+  const [blinkProgress, setBlinkProgress] = useState<number>(0);
   const [isWinking, setIsWinking] = useState<boolean>(false);
-  const [moodOverride, setMoodOverride] = useState<string | null>(null);
-  const [interactionCount, setInteractionCount] = useState<number>(0);
-  const [currentStage, setCurrentStage] = useState<1 | 2 | 3>(evolutionStage);
+
+  // Continuous Deep Optical Physics Loops
+  const [irisRotation, setIrisRotation] = useState<number>(0);
+  const [breathPhase, setBreathPhase] = useState<number>(0);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [isHappy, setIsHappy] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastMouseMoveRef = useRef<number>(Date.now());
 
-  // Mouse / Touch tracking for gaze
+  // Smooth Gaze Interpolation Loop with Parallax Inertia
+  useEffect(() => {
+    let animId: number;
+    const lerp = () => {
+      const finalTargetX = isReflecting ? reflectAngle.x : targetLookX;
+      const finalTargetY = isReflecting ? reflectAngle.y : targetLookY;
+
+      setCurrentLookX((prev) => prev + (finalTargetX - prev) * 0.12);
+      setCurrentLookY((prev) => prev + (finalTargetY - prev) * 0.12);
+      animId = requestAnimationFrame(lerp);
+    };
+    animId = requestAnimationFrame(lerp);
+    return () => cancelAnimationFrame(animId);
+  }, [targetLookX, targetLookY, isReflecting, reflectAngle]);
+
+  // Window-wide Mouse & Touch Gaze Tracking
   useEffect(() => {
     if (!interactive) return;
 
     const handleMouseMove = (e: MouseEvent) => {
+      lastMouseMoveRef.current = Date.now();
+      setIsReflecting(false);
+
+      if (!containerRef.current) {
+        const dx = (e.clientX - window.innerWidth / 2) / (window.innerWidth / 2);
+        const dy = (e.clientY - window.innerHeight / 2) / (window.innerHeight / 2);
+        setTargetLookX(Math.max(-1, Math.min(1, dx)));
+        setTargetLookY(Math.max(-1, Math.min(1, dy)));
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = (e.clientX - centerX) / (window.innerWidth / 2.2);
+      const dy = (e.clientY - centerY) / (window.innerHeight / 2.2);
+      setTargetLookX(Math.max(-1, Math.min(1, dx)));
+      setTargetLookY(Math.max(-1, Math.min(1, dy)));
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      lastMouseMoveRef.current = Date.now();
+      setIsReflecting(false);
+
+      const touch = e.touches[0];
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
-      const deltaX = (e.clientX - centerX) / (window.innerWidth / 2);
-      const deltaY = (e.clientY - centerY) / (window.innerHeight / 2);
-      setLookX(Math.max(-1, Math.min(1, deltaX)));
-      setLookY(Math.max(-1, Math.min(1, deltaY)));
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!containerRef.current || e.touches.length === 0) return;
-      const touch = e.touches[0];
-      const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const deltaX = (touch.clientX - centerX) / (window.innerWidth / 2);
-      const deltaY = (touch.clientY - centerY) / (window.innerHeight / 2);
-      setLookX(Math.max(-1, Math.min(1, deltaX)));
-      setLookY(Math.max(-1, Math.min(1, deltaY)));
+      const dx = (touch.clientX - centerX) / (window.innerWidth / 2.2);
+      const dy = (touch.clientY - centerY) / (window.innerHeight / 2.2);
+      setTargetLookX(Math.max(-1, Math.min(1, dx)));
+      setTargetLookY(Math.max(-1, Math.min(1, dy)));
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -70,445 +115,473 @@ export const GenaionFace: React.FC<GenaionFaceProps> = ({
     };
   }, [interactive]);
 
-  // Periodic natural blinking
+  // Contemplation & Reflection Routine:
+  // When idle or inferring, the eye thoughtfully wanders upward-diagonally, reflecting deeply
   useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      if (Math.random() > 0.25) {
-        setIsBlinking(true);
-        setTimeout(() => setIsBlinking(false), 140);
-      }
-    }, 3200);
+    const reflectInterval = setInterval(() => {
+      const idleTime = Date.now() - lastMouseMoveRef.current;
+      if (idleTime > 2400 || isInferring) {
+        const randomGlanceX = (Math.random() - 0.5) * 0.7;
+        const randomGlanceY = -0.45 - Math.random() * 0.35;
+        setReflectAngle({ x: randomGlanceX, y: randomGlanceY });
+        setIsReflecting(true);
 
-    return () => clearInterval(blinkInterval);
+        setTimeout(() => {
+          setIsReflecting(false);
+        }, 1500 + Math.random() * 900);
+      }
+    }, 4200);
+
+    return () => clearInterval(reflectInterval);
+  }, [isInferring]);
+
+  // Micro-saccades (Ocular living tremor every 1.5 - 2.8s)
+  useEffect(() => {
+    let saccadeTimer: any;
+    const triggerSaccade = () => {
+      const sx = (Math.random() - 0.5) * 1.6;
+      const sy = (Math.random() - 0.5) * 1.3;
+      setSaccadeX(sx);
+      setSaccadeY(sy);
+      const nextDelay = 1500 + Math.random() * 2400;
+      saccadeTimer = setTimeout(triggerSaccade, nextDelay);
+    };
+    triggerSaccade();
+    return () => clearTimeout(saccadeTimer);
   }, []);
 
-  // Determine current emotional and energetic state based on real hardware and activity
-  let mood: 'calm' | 'thinking' | 'warm' | 'critical' | 'happy' = 'calm';
+  // Natural Asymmetric Blink Physics
+  useEffect(() => {
+    let blinkTimeout: any;
+    let animFrame: any;
 
-  if (moodOverride) {
-    mood = moodOverride as any;
+    const triggerBlink = () => {
+      const startTime = performance.now();
+      const totalDuration = 175; // 175ms natural blink
+      const closeRatio = 0.35;
+
+      const step = (now: number) => {
+        const elapsed = now - startTime;
+        const p = Math.min(1, elapsed / totalDuration);
+
+        let progress = 0;
+        if (p < closeRatio) {
+          progress = Math.sin((p / closeRatio) * (Math.PI / 2));
+        } else {
+          const openP = (p - closeRatio) / (1 - closeRatio);
+          progress = Math.cos(openP * (Math.PI / 2));
+        }
+
+        setBlinkProgress(progress);
+
+        if (p < 1) {
+          animFrame = requestAnimationFrame(step);
+        } else {
+          setBlinkProgress(0);
+          scheduleNextBlink();
+        }
+      };
+      animFrame = requestAnimationFrame(step);
+    };
+
+    const scheduleNextBlink = () => {
+      const delay = 2700 + Math.random() * 3500;
+      blinkTimeout = setTimeout(triggerBlink, delay);
+    };
+
+    scheduleNextBlink();
+
+    return () => {
+      clearTimeout(blinkTimeout);
+      cancelAnimationFrame(animFrame);
+    };
+  }, []);
+
+  // Internal Iris Rotation & Living Singularity Breathing Loop
+  useEffect(() => {
+    const breathInterval = setInterval(() => {
+      setBreathPhase((prev) => (prev + 1) % 360);
+      setIrisRotation((prev) => (prev + (isInferring ? 1.4 : 0.35)) % 360);
+    }, 40);
+    return () => clearInterval(breathInterval);
+  }, [isInferring]);
+
+  // Determine emotional and hardware status
+  let mood: 'calm' | 'thinking' | 'warm' | 'critical' | 'happy' = 'calm';
+  if (isHappy) {
+    mood = 'happy';
   } else if (temperatureC >= 50 || thermalState === 'critical') {
     mood = 'critical';
   } else if (temperatureC >= 45 || thermalState === 'throttling' || cpuLoadPercent > 80) {
     mood = 'warm';
-  } else if (isInferring || systemState === 'INFERRING') {
+  } else if (isInferring || systemState === 'INFERRING' || isReflecting) {
     mood = 'thinking';
   } else {
     mood = 'calm';
   }
 
-  // Dimension scaling
-  const dim = size === 'sm' ? 56 : size === 'lg' ? 140 : 96;
+  // Dimensions based on size prop (Centered 1:1 circular/eye ratio)
+  const isCompact = size === 'compact' || size === 'sm';
+  const width = size === 'compact' ? 44 : size === 'sm' ? 62 : size === 'lg' ? 200 : 130;
+  const height = size === 'compact' ? 44 : size === 'sm' ? 62 : size === 'lg' ? 200 : 130;
 
-  // Eye gaze offset calculation
-  const gazeRange = size === 'sm' ? 3 : size === 'lg' ? 7 : 5;
-  const pupilOffsetX = lookX * gazeRange;
-  const pupilOffsetY = lookY * gazeRange;
+  // Eye shift calculation (centered at 50, 50)
+  const maxShiftX = size === 'compact' ? 4.5 : size === 'sm' ? 6 : 9.5;
+  const maxShiftY = size === 'compact' ? 3.5 : size === 'sm' ? 4.8 : 7.5;
+  const eyeX = currentLookX * maxShiftX + saccadeX;
+  const eyeY = currentLookY * maxShiftY + saccadeY;
 
-  // Palette according to mood
-  const getThemeColors = () => {
-    switch (mood) {
-      case 'critical':
-        return {
-          glow: 'rgba(239, 68, 68, 0.45)',
-          primary: '#ef4444',
-          secondary: '#f87171',
-          bg: '#1c0709',
-          border: '#b91c1c',
-          aura: 'animate-pulse text-rose-400',
-        };
-      case 'warm':
-        return {
-          glow: 'rgba(245, 158, 11, 0.4)',
-          primary: '#f59e0b',
-          secondary: '#fbbf24',
-          bg: '#1c1305',
-          border: '#d97706',
-          aura: 'text-amber-400',
-        };
-      case 'thinking':
-        return {
-          glow: 'rgba(34, 211, 238, 0.5)',
-          primary: '#22d3ee',
-          secondary: '#67e8f9',
-          bg: '#041c24',
-          border: '#0891b2',
-          aura: 'text-cyan-400',
-        };
-      case 'happy':
-        return {
-          glow: 'rgba(16, 185, 129, 0.45)',
-          primary: '#10b981',
-          secondary: '#34d399',
-          bg: '#051d14',
-          border: '#059669',
-          aura: 'text-emerald-400',
-        };
-      case 'calm':
-      default:
-        return {
-          glow: 'rgba(56, 189, 248, 0.35)',
-          primary: '#38bdf8',
-          secondary: '#93c5fd',
-          bg: '#090d16',
-          border: '#1e293b',
-          aura: 'text-sky-400',
-        };
-    }
-  };
+  // Multi-tier Parallax Depth: Internal layers shift at different ratios
+  const irisX = eyeX;
+  const irisY = eyeY;
+  const pupilX = eyeX * 1.15; // Deeper layer moves slightly more (inverted parallax perspective)
+  const pupilY = eyeY * 1.15;
+  const causticX = -eyeX * 0.45; // Counter-reflection moves inversely to light source
+  const causticY = -eyeY * 0.45;
 
-  const theme = getThemeColors();
+  // Deep Pupil Dilation Physics (living breath + cognitive dilation)
+  const dilationBreath = Math.sin(breathPhase * 0.05) * 0.7;
+  const basePupilRadius = isInferring || isReflecting
+    ? 9.6 + dilationBreath
+    : mood === 'critical'
+    ? 6.2 + dilationBreath
+    : 7.8 + dilationBreath;
 
-  const handleFaceClick = () => {
-    setInteractionCount((prev) => prev + 1);
+  // Luminous Palette with deep oceanic / cosmic jewel tones
+  const palette = {
+    critical: {
+      deepCore: '#450a0a',
+      irisCore: '#ef4444',
+      irisMid: '#991b1b',
+      irisOuter: '#f87171',
+      limbalRing: '#7f1d1d',
+      caustic: '#fca5a5',
+      energyGlow: 'rgba(239, 68, 68, 0.75)',
+      statusText: '● ALERTA TÉRMICA',
+      statusClass: 'text-rose-400',
+    },
+    warm: {
+      deepCore: '#451a03',
+      irisCore: '#f59e0b',
+      irisMid: '#92400e',
+      irisOuter: '#fbbf24',
+      limbalRing: '#78350f',
+      caustic: '#fde68a',
+      energyGlow: 'rgba(245, 158, 11, 0.7)',
+      statusText: '● CARGA ELEVADA',
+      statusClass: 'text-amber-400',
+    },
+    thinking: {
+      deepCore: '#083344',
+      irisCore: '#06b6d4',
+      irisMid: '#0369a1',
+      irisOuter: '#67e8f9',
+      limbalRing: '#0e7490',
+      caustic: '#a5f3fc',
+      energyGlow: 'rgba(34, 211, 238, 0.85)',
+      statusText: '● REFLEXIÓN COGNITIVA',
+      statusClass: 'text-cyan-400',
+    },
+    happy: {
+      deepCore: '#022c22',
+      irisCore: '#10b981',
+      irisMid: '#047857',
+      irisOuter: '#34d399',
+      limbalRing: '#065f46',
+      caustic: '#6ee7b7',
+      energyGlow: 'rgba(16, 185, 129, 0.75)',
+      statusText: '● CONEXIÓN ACTIVA',
+      statusClass: 'text-emerald-400',
+    },
+    calm: {
+      deepCore: '#082f49',
+      irisCore: '#0284c7',
+      irisMid: '#0369a1',
+      irisOuter: '#38bdf8',
+      limbalRing: '#075985',
+      caustic: '#bae6fd',
+      energyGlow: 'rgba(56, 189, 248, 0.7)',
+      statusText: '● OJO SOBERANO',
+      statusClass: 'text-sky-400',
+    },
+  }[mood];
+
+  // Click interaction: slow, mesmerizing aperture pulse & wink
+  const handleInteraction = () => {
     setIsWinking(true);
-    setMoodOverride('happy');
+    setIsHappy(true);
     setTimeout(() => {
       setIsWinking(false);
-      setMoodOverride(null);
-    }, 1200);
+      setIsHappy(false);
+    }, 1400);
   };
 
-  const toggleStage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentStage((prev) => (prev === 3 ? 1 : ((prev + 1) as 1 | 2 | 3)));
-  };
+  // Eyelid Aperture Physics (Pure Eye centered at 50, 50)
+  // Eye Corners: (18, 50) and (82, 50)
+  const effectiveBlink = isWinking ? 1 : blinkProgress;
+  const reflectSquint = isReflecting ? 2.5 : 0;
+
+  const eyelidTop = 24 + effectiveBlink * 26 + reflectSquint;
+  const eyelidBottom = 76 - effectiveBlink * 26 - reflectSquint;
 
   return (
     <div
       ref={containerRef}
-      onClick={handleFaceClick}
+      onClick={handleInteraction}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`group relative select-none inline-flex flex-col items-center justify-center cursor-pointer transition-transform duration-200 active:scale-95 ${className}`}
-      title="Haz clic para interactuar con la entidad de GENAION · Haz clic en el botón inferior para evolucionar su etapa"
+      title="GENAION — Ojo Soberano Profundo. Libre de bordes, contemplativo y omnisciente. Haz clic para interactuar."
     >
-      {/* Outer Cybernetic Halo / Breath Aura */}
+      {/* 
+        PURE EYE ONLY:
+        Zero eyebrow, zero mouth, zero bounding boxes or frames.
+        Ultra-deep, multi-layered cosmic/biological aperture floating in pure space.
+      */}
       <div
-        className={`relative rounded-2xl flex items-center justify-center p-2 transition-all duration-300 ${
-          mood === 'critical' ? 'animate-pulse' : ''
-        }`}
-        style={{
-          width: dim,
-          height: dim,
-          backgroundColor: theme.bg,
-          borderColor: theme.border,
-          boxShadow: `0 0 20px ${theme.glow}, inset 0 0 12px ${theme.glow}`,
-          borderWidth: '1.5px',
-        }}
+        className="relative flex items-center justify-center transition-all duration-300"
+        style={{ width, height }}
       >
-        {/* Stage 1: GÉNESIS (Geometric Digital Face) */}
-        {currentStage === 1 && (
-          <svg
-            viewBox="0 0 100 100"
-            className="w-full h-full overflow-visible transition-all duration-300"
-          >
-            {/* Hexagonal Head Boundary */}
-            <polygon
-              points="50,6 88,27 88,73 50,94 12,73 12,27"
-              fill="none"
-              stroke={theme.border}
-              strokeWidth="1.5"
-              strokeDasharray="4 3"
-              className="opacity-70"
-            />
-
-            {/* Neural Crest Antenna / Pulse */}
-            <circle cx="50" cy="12" r="3" fill={theme.primary} className={isInferring ? 'animate-ping' : ''} />
-            <line x1="50" y1="15" x2="50" y2="28" stroke={theme.primary} strokeWidth="1.5" />
-
-            {/* Left Eye Socket */}
-            <g transform="translate(32, 45)">
-              <rect
-                x="-12"
-                y="-10"
-                width="24"
-                height="20"
-                rx="4"
-                fill="#020617"
-                stroke={theme.primary}
-                strokeWidth="1.2"
-              />
-              {/* Eye pupil */}
-              {!isBlinking && (
-                <circle
-                  cx={pupilOffsetX}
-                  cy={pupilOffsetY}
-                  r="5"
-                  fill={theme.secondary}
-                  className="transition-transform duration-75"
-                />
-              )}
-              {isBlinking && (
-                <line x1="-8" y1="0" x2="8" y2="0" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-              )}
-            </g>
-
-            {/* Right Eye Socket */}
-            <g transform="translate(68, 45)">
-              <rect
-                x="-12"
-                y="-10"
-                width="24"
-                height="20"
-                rx="4"
-                fill="#020617"
-                stroke={theme.primary}
-                strokeWidth="1.2"
-              />
-              {/* Eye pupil or Wink */}
-              {!isBlinking && !isWinking && (
-                <circle
-                  cx={pupilOffsetX}
-                  cy={pupilOffsetY}
-                  r="5"
-                  fill={theme.secondary}
-                  className="transition-transform duration-75"
-                />
-              )}
-              {(isBlinking || isWinking) && (
-                <path
-                  d="M -8 1 Q 0 -4 8 1"
-                  fill="none"
-                  stroke={theme.secondary}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-              )}
-            </g>
-
-            {/* Cheek Digital Matrix Markers */}
-            <circle cx="20" cy="58" r="1.5" fill={theme.secondary} className="opacity-80" />
-            <circle cx="80" cy="58" r="1.5" fill={theme.secondary} className="opacity-80" />
-
-            {/* Mouth / Waveform */}
-            {mood === 'thinking' ? (
-              // Audio / Speech Equalizer bars
-              <g transform="translate(50, 75)">
-                <line x1="-12" y1="-3" x2="-12" y2="3" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" className="animate-pulse" />
-                <line x1="-6" y1="-6" x2="-6" y2="6" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" />
-                <line x1="0" y1="-8" x2="0" y2="8" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" className="animate-pulse" />
-                <line x1="6" y1="-6" x2="6" y2="6" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" />
-                <line x1="12" y1="-3" x2="12" y2="3" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" className="animate-pulse" />
-              </g>
-            ) : mood === 'critical' ? (
-              // Alarmed tense zigzag mouth
-              <path
-                d="M 36 78 L 43 73 L 50 78 L 57 73 L 64 78"
-                fill="none"
-                stroke={theme.primary}
-                strokeWidth="2.2"
-                strokeLinecap="round"
-              />
-            ) : mood === 'happy' ? (
-              // Smiling arch
-              <path
-                d="M 36 72 Q 50 83 64 72"
-                fill="none"
-                stroke={theme.secondary}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            ) : (
-              // Serene digital slit
-              <line
-                x1="38"
-                y1="75"
-                x2="62"
-                y2="75"
-                stroke={theme.primary}
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="opacity-90"
-              />
-            )}
-          </svg>
-        )}
-
-        {/* Stage 2: SINÁPTICO (Neural Circuitry & Expressive Cyber Visor) */}
-        {currentStage === 2 && (
-          <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
-            {/* Neural Brain Circuit traces on forehead */}
-            <path
-              d="M 28 20 L 40 28 L 50 24 L 60 28 L 72 20"
-              fill="none"
-              stroke={theme.secondary}
-              strokeWidth="1.2"
-              strokeDasharray="2 2"
-              className={isInferring ? 'animate-pulse' : 'opacity-60'}
-            />
-            <circle cx="50" cy="24" r="2.5" fill={theme.secondary} />
-
-            {/* Continuous Curved Cyber Visor */}
-            <path
-              d="M 18 38 Q 50 32 82 38 L 84 56 Q 50 64 16 56 Z"
-              fill="#020617"
-              stroke={theme.primary}
-              strokeWidth="1.5"
-            />
-
-            {/* Left Eye / Visor Glow */}
-            {!isBlinking && (
-              <ellipse
-                cx={36 + pupilOffsetX}
-                cy={47 + pupilOffsetY}
-                rx="6"
-                ry="5"
-                fill={theme.secondary}
-                className="transition-transform duration-75"
-              />
-            )}
-            {isBlinking && (
-              <line x1="28" y1="47" x2="44" y2="47" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-            )}
-
-            {/* Right Eye */}
-            {!isBlinking && !isWinking && (
-              <ellipse
-                cx={64 + pupilOffsetX}
-                cy={47 + pupilOffsetY}
-                rx="6"
-                ry="5"
-                fill={theme.secondary}
-                className="transition-transform duration-75"
-              />
-            )}
-            {(isBlinking || isWinking) && (
-              <path d="M 56 48 Q 64 43 72 48" fill="none" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-            )}
-
-            {/* Chin Accent Lines */}
-            <line x1="30" y1="84" x2="44" y2="84" stroke={theme.border} strokeWidth="1.5" />
-            <line x1="56" y1="84" x2="70" y2="84" stroke={theme.border} strokeWidth="1.5" />
-
-            {/* Expressive Mouth */}
-            {mood === 'thinking' ? (
-              <g transform="translate(50, 74)">
-                <ellipse cx="0" cy="0" rx="6" ry="4" fill="none" stroke={theme.secondary} strokeWidth="2" className="animate-pulse" />
-              </g>
-            ) : mood === 'critical' ? (
-              <path d="M 36 78 Q 50 68 64 78" fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" />
-            ) : mood === 'happy' ? (
-              <path d="M 35 70 Q 50 84 65 70" fill="none" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-            ) : (
-              <path d="M 38 73 Q 50 76 62 73" fill="none" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" />
-            )}
-          </svg>
-        )}
-
-        {/* Stage 3: ANDROIDE SOBERANO (Full Cyber Android with Dynamic Eyes & HUD) */}
-        {currentStage === 3 && (
-          <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
-            {/* Outer Head Armor Plates */}
-            <path
-              d="M 22 18 Q 50 10 78 18 L 86 65 Q 50 96 14 65 Z"
-              fill="none"
-              stroke={theme.primary}
-              strokeWidth="1.5"
-            />
-
-            {/* HUD Reticle Marks */}
-            <line x1="8" y1="50" x2="16" y2="50" stroke={theme.secondary} strokeWidth="1" />
-            <line x1="84" y1="50" x2="92" y2="50" stroke={theme.secondary} strokeWidth="1" />
-
-            {/* Big Luminous Eyes */}
-            <g transform="translate(34, 44)">
-              <circle cx="0" cy="0" r="12" fill="#030712" stroke={theme.primary} strokeWidth="1.2" />
-              {!isBlinking && (
-                <>
-                  <circle
-                    cx={pupilOffsetX}
-                    cy={pupilOffsetY}
-                    r="6"
-                    fill={theme.secondary}
-                    className="transition-transform duration-75"
-                  />
-                  <circle cx={pupilOffsetX - 2} cy={pupilOffsetY - 2} r="2" fill="#ffffff" />
-                </>
-              )}
-              {isBlinking && (
-                <line x1="-9" y1="0" x2="9" y2="0" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-              )}
-            </g>
-
-            <g transform="translate(66, 44)">
-              <circle cx="0" cy="0" r="12" fill="#030712" stroke={theme.primary} strokeWidth="1.2" />
-              {!isBlinking && !isWinking && (
-                <>
-                  <circle
-                    cx={pupilOffsetX}
-                    cy={pupilOffsetY}
-                    r="6"
-                    fill={theme.secondary}
-                    className="transition-transform duration-75"
-                  />
-                  <circle cx={pupilOffsetX - 2} cy={pupilOffsetY - 2} r="2" fill="#ffffff" />
-                </>
-              )}
-              {(isBlinking || isWinking) && (
-                <path d="M -9 2 Q 0 -4 9 2" fill="none" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-              )}
-            </g>
-
-            {/* Subtle Blush or Thermal Glow */}
-            <ellipse cx="22" cy="56" rx="4" ry="2" fill={theme.glow} />
-            <ellipse cx="78" cy="56" rx="4" ry="2" fill={theme.glow} />
-
-            {/* Mouth */}
-            {mood === 'thinking' ? (
-              <g transform="translate(50, 72)">
-                <path d="M -10 0 Q 0 -5 10 0 Q 0 5 -10 0" fill={theme.secondary} className="animate-pulse opacity-90" />
-              </g>
-            ) : mood === 'critical' ? (
-              <path d="M 38 76 Q 50 66 62 76" fill="none" stroke={theme.primary} strokeWidth="2.5" strokeLinecap="round" />
-            ) : mood === 'happy' ? (
-              <path d="M 36 68 Q 50 82 64 68" fill="none" stroke={theme.secondary} strokeWidth="2.5" strokeLinecap="round" />
-            ) : (
-              <path d="M 40 72 Q 50 76 60 72" fill="none" stroke={theme.secondary} strokeWidth="2" strokeLinecap="round" />
-            )}
-          </svg>
-        )}
-
-        {/* Thermal Steam / Glitch Particles if Warm / Critical */}
-        {mood === 'critical' && (
-          <div className="absolute -top-1 -right-1 flex gap-0.5">
-            <Flame className="w-4 h-4 text-rose-500 animate-bounce" />
-          </div>
-        )}
-        {mood === 'warm' && (
-          <div className="absolute -top-1 -right-1">
-            <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          </div>
-        )}
-      </div>
-
-      {/* Evolution Stage Switcher & Emotional Status Badge */}
-      <div className="mt-2 flex flex-col items-center">
-        <button
-          onClick={toggleStage}
-          className="text-[10px] font-mono text-slate-400 hover:text-cyan-400 bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 shadow-sm"
-          title="Haz clic para evolucionar el rostro a la siguiente etapa de desarrollo"
+        <svg
+          viewBox="0 0 100 100"
+          className="w-full h-full overflow-visible drop-shadow-lg"
         >
-          <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
-          <span>
-            {currentStage === 1
-              ? 'Etapa 1: Génesis'
-              : currentStage === 2
-              ? 'Etapa 2: Sináptico'
-              : 'Etapa 3: Androide'}
-          </span>
-        </button>
+          <defs>
+            {/* Luminous Glow for Deep Energy Emission */}
+            <filter id={`deepEyeGlow-${uniqueId}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3.6" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
 
-        <span className={`text-[10px] font-mono mt-0.5 font-semibold ${theme.aura}`}>
-          {mood === 'critical'
-            ? '● Peligro Térmico'
-            : mood === 'warm'
-            ? '● Carga Elevada'
-            : mood === 'thinking'
-            ? '● Procesando...'
-            : mood === 'happy'
-            ? '● En Sincronía'
-            : '● Soberano / Calma'}
-        </span>
+            {/* Deep Volumetric Iris Radial Gradient (Simulates optical sphere refraction) */}
+            <radialGradient id={`deepIrisGrad-${uniqueId}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#000000" />
+              <stop offset="25%" stopColor={palette.deepCore} />
+              <stop offset="50%" stopColor={palette.irisMid} />
+              <stop offset="78%" stopColor={palette.irisCore} />
+              <stop offset="92%" stopColor={palette.irisOuter} />
+              <stop offset="100%" stopColor={palette.limbalRing} />
+            </radialGradient>
+
+            {/* Glassy Cornea 3D Sphere Refraction (Optical curvature highlight) */}
+            <radialGradient id={`cornea3D-${uniqueId}`} cx="36%" cy="32%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
+              <stop offset="35%" stopColor="#ffffff" stopOpacity="0.12" />
+              <stop offset="75%" stopColor="#000000" stopOpacity="0" />
+              <stop offset="100%" stopColor={palette.irisOuter} stopOpacity="0.35" />
+            </radialGradient>
+
+            {/* Counter-Caustic Refraction Gradient (Internal reflection at bottom of iris) */}
+            <radialGradient id={`causticGrad-${uniqueId}`} cx="50%" cy="85%" r="45%">
+              <stop offset="0%" stopColor={palette.caustic} stopOpacity="0.75" />
+              <stop offset="60%" stopColor={palette.irisOuter} stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+            </radialGradient>
+
+            {/* Eye Eyelid Contour Clip Path (Almond-round aperture centered at 50, 50) */}
+            <clipPath id={`deepApertureClip-${uniqueId}`}>
+              <path
+                d={`M 18 50 
+                    C 28 ${eyelidTop}, 72 ${eyelidTop}, 82 50 
+                    C 72 ${eyelidBottom}, 28 ${eyelidBottom}, 18 50 Z`}
+              />
+            </clipPath>
+          </defs>
+
+          {/* Deep Orbital Sclera Background */}
+          <path
+            d="M 18 50 C 28 24, 72 24, 82 50 C 72 76, 28 76, 18 50 Z"
+            fill="#010409"
+            stroke={palette.irisCore}
+            strokeWidth="1.2"
+            filter={`url(#deepEyeGlow-${uniqueId})`}
+            className="transition-colors duration-300"
+          />
+
+          {/* ===================== EYE INTERIOR (CLIPPED) ===================== */}
+          <g clipPath={`url(#deepApertureClip-${uniqueId})`}>
+            {/* Deep Ambient Space Void */}
+            <circle
+              cx={50 + irisX}
+              cy={50 + irisY}
+              r="22"
+              fill={palette.deepCore}
+              opacity="0.35"
+            />
+
+            {/* Limbal Ring (Anatomical depth boundary) */}
+            <circle
+              cx={50 + irisX}
+              cy={50 + irisY}
+              r="19"
+              fill="none"
+              stroke={palette.limbalRing}
+              strokeWidth="2.8"
+              opacity="0.95"
+            />
+
+            {/* Deep Hypnotic Volumetric Iris */}
+            <circle
+              cx={50 + irisX}
+              cy={50 + irisY}
+              r="18"
+              fill={`url(#deepIrisGrad-${uniqueId})`}
+              className="transition-transform duration-75"
+            />
+
+            {/* Internal Caustic Optical Bounce (Light exiting bottom edge of iris) */}
+            <circle
+              cx={50 + irisX + causticX}
+              cy={50 + irisY + causticY}
+              r="17"
+              fill={`url(#causticGrad-${uniqueId})`}
+              pointerEvents="none"
+            />
+
+            {/* Micro-Filaments / Ciliary Crypts (Dynamic rotational energy) */}
+            <g transform={`rotate(${irisRotation}, ${50 + irisX}, ${50 + irisY})`}>
+              {[
+                0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165,
+                180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345,
+              ].map((deg) => {
+                const rad = (deg * Math.PI) / 180;
+                const innerDist = deg % 30 === 0 ? 8 : 9.5;
+                const outerDist = deg % 30 === 0 ? 17.5 : 16.5;
+                const x1 = 50 + irisX + Math.cos(rad) * innerDist;
+                const y1 = 50 + irisY + Math.sin(rad) * innerDist;
+                const x2 = 50 + irisX + Math.cos(rad) * outerDist;
+                const y2 = 50 + irisY + Math.sin(rad) * outerDist;
+                return (
+                  <line
+                    key={deg}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={palette.irisOuter}
+                    strokeWidth={deg % 30 === 0 ? '0.8' : '0.4'}
+                    opacity={deg % 30 === 0 ? '0.85' : '0.5'}
+                  />
+                );
+              })}
+            </g>
+
+            {/* Middle Collarette Ring (Contraction furrow inside human/cyber iris) */}
+            <circle
+              cx={50 + irisX}
+              cy={50 + irisY}
+              r="12.5"
+              fill="none"
+              stroke={palette.irisOuter}
+              strokeWidth="0.5"
+              strokeDasharray={isInferring ? '2.5, 1.5' : '4, 2'}
+              opacity="0.65"
+              className={isInferring ? 'animate-pulse' : ''}
+            />
+
+            {/* Concentric Thought Ring (Pulsates outwards during cognitive reflection) */}
+            <circle
+              cx={50 + pupilX}
+              cy={50 + pupilY}
+              r={basePupilRadius + 3.2}
+              fill="none"
+              stroke={palette.irisCore}
+              strokeWidth="0.6"
+              strokeDasharray="3, 2"
+              opacity={isInferring ? 0.9 : 0.45}
+            />
+
+            {/* Deep Abyss Pupil (Black Hole Singularity with Depth) */}
+            <circle
+              cx={50 + pupilX}
+              cy={50 + pupilY}
+              r={basePupilRadius}
+              fill="#000000"
+              stroke={palette.irisOuter}
+              strokeWidth="0.8"
+              className="transition-all duration-300"
+            />
+
+            {/* Singularity Inner Event Horizon (Breathes and glows in the deep core) */}
+            <circle
+              cx={50 + pupilX}
+              cy={50 + pupilY}
+              r={basePupilRadius * 0.45}
+              fill="none"
+              stroke={palette.irisCore}
+              strokeWidth="0.6"
+              opacity="0.9"
+            />
+
+            {/* 3D Glassy Cornea Dome Sphere Overlay */}
+            <circle
+              cx={50 + irisX}
+              cy={50 + irisY}
+              r="18"
+              fill={`url(#cornea3D-${uniqueId})`}
+              pointerEvents="none"
+            />
+
+            {/* Primary Specular Caustic Glint (Lively eye moisture & light focus) */}
+            <circle
+              cx={50 + irisX - 4.5}
+              cy={50 + irisY - 4.2}
+              r="2.6"
+              fill="#ffffff"
+              className="opacity-95"
+            />
+
+            {/* Secondary Ambient Specular Glint (Opposite bounce) */}
+            <circle
+              cx={50 + irisX + 3.8}
+              cy={50 + irisY + 3.5}
+              r="1.3"
+              fill="#ffffff"
+              className="opacity-75"
+            />
+
+            {/* Tertiary Micro-Glint (Gives unmistakable liquid sentience) */}
+            <circle
+              cx={50 + irisX - 2.0}
+              cy={50 + irisY + 5.0}
+              r="0.75"
+              fill="#ffffff"
+              className="opacity-65"
+            />
+          </g>
+
+          {/* Upper Lash Margin (Fluid organic contour) */}
+          <path
+            d={`M 18 50 C 28 ${eyelidTop}, 72 ${eyelidTop}, 82 50`}
+            fill="none"
+            stroke={palette.irisOuter}
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+
+          {/* Lower Eyelid Margin */}
+          <path
+            d={`M 18 50 C 28 ${eyelidBottom}, 72 ${eyelidBottom}, 82 50`}
+            fill="none"
+            stroke={palette.irisCore}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            className="opacity-70"
+          />
+        </svg>
       </div>
+
+      {/* Dynamic Status Text Indicator (Hidden in ultra-compact navbar mode) */}
+      {showStatusLabel && !isCompact && (
+        <div className="mt-1 flex items-center gap-1.5 pointer-events-none">
+          <span className={`text-[10px] font-mono tracking-wider font-semibold ${palette.statusClass}`}>
+            {isReflecting ? '● REFLEXIÓN...' : palette.statusText}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
